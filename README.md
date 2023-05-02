@@ -2,7 +2,7 @@
 
 🧪 An open-source, up-to-date toolkit for building decentralized applications (dapps) on the Ethereum blockchain. It's designed to make it easier for developers to create and deploy smart contracts and build user interfaces that interact with those contracts.
 
-⚙️ Built using NextJS, RainbowKit, Hardhat, Wagmi, and Typescript.
+⚙️ Built using NextJS, DynamicSdk, Hardhat, Wagmi, and Typescript.
 
 - ✅ **Contract Hot Reload**: Your frontend auto-adapts to your smart contract as you edit it.
 - 🔥 **Burner Wallet & Local Faucet**: Quickly test your application with a burner wallet and local faucet.
@@ -14,7 +14,6 @@
 - [Quickstart](#quickstart)
 - [Deploying your Smart Contracts to a Live Network](#deploying-your-smart-contracts-to-a-live-network)
 - [Deploying your NextJS App](#deploying-your-nextjs-app)
-- [Interacting with your Smart Contracts: SE-2 Custom Hooks](#interacting-with-your-smart-contracts-se-2-custom-hooks)
 - [Disabling Type & Linting Error Checks](#disabling-type-and-linting-error-checks)
   - [Disabling commit checks](#disabling-commit-checks)
   - [Deploying to Vercel without any checks](#deploying-to-vercel-without-any-checks)
@@ -124,10 +123,7 @@ If you want to redeploy to the same production URL you can run `yarn vercel --pr
 
 **Make sure your `packages/nextjs/scaffold.config.ts` file has the values you need.**
 
-## Interacting with your Smart Contracts: SE-2 Custom Hooks
-
-Scaffold-ETH 2 provides a collection of custom React hooks designed to simplify interactions with your deployed smart contracts. These hooks are wrappers around `wagmi`, automatically loading the necessary contract ABI and address. They offer an easy-to-use interface for reading from, writing to, and monitoring events emitted by your smart contracts.  
-If you need to interact with external contracts, you can use `wagmi` directly, or add external contract data to your `deployedContracts.ts` file.
+## Hook Example
 
 - [useScaffoldContractRead](#usescaffoldcontractread)
 - [useScaffoldContractWrite](#usescaffoldcontractwrite)
@@ -138,7 +134,7 @@ If you need to interact with external contracts, you can use `wagmi` directly, o
 
 ### useScaffoldContractRead:
 
-Read public variables and get data from read-only functions of your contract.
+Use this hook to read a value from your deployed contracts.
 
 ```ts
 const { data: totalCounter } = useScaffoldContractRead({
@@ -150,36 +146,28 @@ const { data: totalCounter } = useScaffoldContractRead({
 
 ### useScaffoldContractWrite:
 
-Send a transaction to your contract to write data or perform an action.
+Use this hook to write to your deployed contracts.
 
 ```ts
-const { writeAsync, isLoading, isMining } = useScaffoldContractWrite({
+const { writeAsync, isLoading } = useScaffoldContractRead({
   contractName: "YourContract",
   functionName: "setGreeting",
   args: ["The value to set"],
-  // For payable functions, expressed in ETH
+  //value if the function is payable and sends eth to it
   value: "0.01",
 });
 ```
 
-To make the actual call:
-
-```ts
-<button className="btn btn-primary" onClick={writeAsync}>
-  Send TX
-</button>
-```
-
 ### useScaffoldEventSubscriber:
 
-Subscribe to your contract events, receiving real-time updates when events are emitted.
+Use this to listen for an event emitted in the deployed smart contracts.
 
 ```ts
 useScaffoldEventSubscriber({
   contractName: "YourContract",
   eventName: "GreetingChange",
-  // The listener function is called whenever a GreetingChange event is emitted by the contract.
-  // It receives the parameters emitted by the event, for this example: GreetingChange(address greetingSetter, string newGreeting, bool premium, uint256 value);
+  //parameters that the event emits
+  //event GreetingChange(address greetingSetter, string newGreeting, bool premium, uint256 value);
   listener: (greetingSetter, newGreeting, premium, value) => {
     console.log(greetingSetter, newGreeting, premium, value);
   },
@@ -188,7 +176,7 @@ useScaffoldEventSubscriber({
 
 ### useScaffoldEventHistory:
 
-Retrieves historical event logs for your contract, providing past activity data.
+Use this hook to read events from a deployed contract
 
 ```ts
 const {
@@ -198,40 +186,36 @@ const {
   } = useScaffoldEventHistory({
   contractName: "YourContract",
   eventName: "GreetingChange",
-  // Specify the starting block number from which to read events.
-  fromBlock: 31231,
+  fromBlock: //the block number to start reading events from,
   blockData: true,
-  // Apply filters to the event based on parameter names and values { [parameterName]: value },
-  filters: { premium: true }
-  // If set to true it will return the transaction data for each event (default: false),
-  transactionData: true,
-  // If set to true it will return the receipt data for each event (default: false),
-  receiptData: true
+  filters: //filters to be applied to the event (parameterName: value),
+  transactionData: //if set to true it will return the transaction data for each event (default: false),
+  receiptData: //if set to true it will return the receipt data for each event (default: false),
 });
 ```
 
 ### useDeployedContractInfo:
 
-Fetches details from your contract, including ABI and address.
+Use this hook to get the matching contract info from the contracts file generated by yarn deploy
 
 ```ts
-// ContractName: name of the deployed contract
+//contractName: name of the deployed contract
 const { data: deployedContractData } = useDeployedContractInfo(contractName);
 ```
 
 ### useScaffoldContract:
 
-Get your contract instance by providing the contract name. Lets you interact with your contract methods.  
-For reading data or sending transactions, it's recommended to use `useScaffoldContractRead` and `useScaffoldContractWrite`.
+Use to gets a deployed contract by contract name and returns a contract instance
+Can also be use to read and write to the deployed smart contract
 
 ```ts
 const { data: yourContract } = useScaffoldContract({
   contractName: "YourContract",
 });
-// Returns the greeting and can be called in any function, unlike useScaffoldContractRead
+// will return the greeting and can be call in any function unlike useScaffoldContractRead
 await yourContract?.greeting();
 
-// Used to write to a contract and can be called in any function
+//can be use to write to a contract and can be called in any function
 import { Signer } from "ethers";
 import { useSigner } from "wagmi";
 
@@ -241,7 +225,7 @@ const { data: yourContract } = useScaffoldContract({
   signerOrProvider: signer as Signer,
 });
 const setGreeting = async () => {
-  // Call the method in any function
+  //call the method in any function
   await yourContract?.setGreeting("the greeting here");
 };
 ```

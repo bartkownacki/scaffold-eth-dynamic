@@ -1,26 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { AppProps } from "next/app";
-import { RainbowKitProvider, darkTheme, lightTheme } from "@rainbow-me/rainbowkit";
-import "@rainbow-me/rainbowkit/styles.css";
+import { DynamicContextProvider } from "@dynamic-labs/sdk-react";
+import { DynamicWagmiConnector } from "@dynamic-labs/wagmi-connector";
 import NextNProgress from "nextjs-progressbar";
 import { Toaster } from "react-hot-toast";
-import { useDarkMode } from "usehooks-ts";
-import { WagmiConfig } from "wagmi";
 import { Footer } from "~~/components/Footer";
 import { Header } from "~~/components/Header";
-import { BlockieAvatar } from "~~/components/scaffold-eth";
 import { useEthPrice } from "~~/hooks/scaffold-eth";
 import { useAppStore } from "~~/services/store/store";
-import { wagmiClient } from "~~/services/web3/wagmiClient";
-import { appChains } from "~~/services/web3/wagmiConnectors";
 import "~~/styles/globals.css";
 
 const ScaffoldEthApp = ({ Component, pageProps }: AppProps) => {
   const price = useEthPrice();
   const setEthPrice = useAppStore(state => state.setEthPrice);
   // This variable is required for initial client side rendering of correct theme for RainbowKit
-  const [isDarkTheme, setIsDarkTheme] = useState(true);
-  const { isDarkMode } = useDarkMode();
 
   useEffect(() => {
     if (price > 0) {
@@ -28,28 +21,40 @@ const ScaffoldEthApp = ({ Component, pageProps }: AppProps) => {
     }
   }, [setEthPrice, price]);
 
-  useEffect(() => {
-    setIsDarkTheme(isDarkMode);
-  }, [isDarkMode]);
-
   return (
-    <WagmiConfig client={wagmiClient}>
+    <>
       <NextNProgress />
-      <RainbowKitProvider
-        chains={appChains.chains}
-        avatar={BlockieAvatar}
-        theme={isDarkTheme ? darkTheme() : lightTheme()}
+      <DynamicContextProvider
+        settings={{
+          environmentId: "fbf6e5e6-e22c-4ab8-bcc0-77323b68fb62",
+          initialAuthenticationMode: "connect-only",
+          evmNetworks: [
+            {
+              chainName: "Hardhat",
+              chainId: 31337,
+              networkId: 31337,
+              rpcUrls: ["http://127.0.0.1:8545"],
+              nativeCurrency: {
+                name: "Ether",
+                symbol: "ETH",
+                decimals: 18,
+              },
+            },
+          ],
+        }}
       >
-        <div className="flex flex-col min-h-screen">
-          <Header />
-          <main className="relative flex flex-col flex-1">
-            <Component {...pageProps} />
-          </main>
-          <Footer />
-        </div>
-        <Toaster />
-      </RainbowKitProvider>
-    </WagmiConfig>
+        <DynamicWagmiConnector>
+          <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="relative flex flex-col flex-1">
+              <Component {...pageProps} />
+            </main>
+            <Footer />
+          </div>
+          <Toaster />
+        </DynamicWagmiConnector>
+      </DynamicContextProvider>
+    </>
   );
 };
 
